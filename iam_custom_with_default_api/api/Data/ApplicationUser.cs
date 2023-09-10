@@ -10,5 +10,5 @@ namespace WebApplication12.Areas.Identity.Data;
 public class ApplicationUser : IdentityUser
 {
     public string RefreshToken { get; set; }
-    public string RefreshTokenExpireTime { get; set; }
+    public DateTime RefreshTokenExpireTime { get; set; }
 }

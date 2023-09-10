@@ -63,20 +63,21 @@ public class LoginUserCommandHandler : IRequestHandler<LoginUserCommandRequest, 
             var refreshToken = _tokenService.GenerateRefreshToken();
             
             user.RefreshToken = refreshToken;
-            user.RefreshTokenExpireTime = _jwtConfig.RefreshTokenExpireTime;
+            var refreshTokenExpireTime = DateTime.Now.AddMinutes(180).ToString();
+            user.RefreshTokenExpireTime = refreshTokenExpireTime;
             await _userManager.UpdateAsync(user);
             var loginResponse =
             new LoginResponse
             {
                 Token = new JwtSecurityTokenHandler().WriteToken(token),
-                RefreshTokenExpireTime = token.ValidTo,
+                TokenExpireTime = token.ValidTo.ToString(),
+                RefreshTokenExpireTime = refreshTokenExpireTime.ToString() ,
                 RefreshToken = refreshToken
             };
             return loginResponse.ToSuccessResult();
         }
-        throw new NotFiniteNumberException();
         //  return Unauthorized();
-
+        return ResultOperation<LoginResponse>.ToFailedResult();
 
     }
 }

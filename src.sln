@@ -27,6 +27,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "shared", "shared", "{484F37
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Base.Shared", "shared\Base.Shared\Base.Shared.csproj", "{A78FF883-6F6F-4861-B2ED-97688190C0F5}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "aspnetcore-jwt-auth-aspnetcore-jwt-auth-refresh-tokens", "aspnetcore-jwt-auth-aspnetcore-jwt-auth-refresh-tokens", "{D559C45A-0F53-48B3-8CDF-B8D22904F8DC}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "JwtAuthentication.Server", "JwtAuthentication.Server", "{AD2621CB-4BFB-4982-BC85-6753F8A96DFD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JwtAuthentication.Server", "iam_default_microsoft_api\aspnetcore-jwt-auth-aspnetcore-jwt-auth-refresh-tokens\JwtAuthentication.Server\JwtAuthentication.Server\JwtAuthentication.Server.csproj", "{7BC917D5-B9CC-457D-9957-62E22963AA61}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -57,6 +63,10 @@ Global
 		{A78FF883-6F6F-4861-B2ED-97688190C0F5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A78FF883-6F6F-4861-B2ED-97688190C0F5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A78FF883-6F6F-4861-B2ED-97688190C0F5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7BC917D5-B9CC-457D-9957-62E22963AA61}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7BC917D5-B9CC-457D-9957-62E22963AA61}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7BC917D5-B9CC-457D-9957-62E22963AA61}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7BC917D5-B9CC-457D-9957-62E22963AA61}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -68,5 +78,8 @@ Global
 		{3FE8ED61-F616-454B-A8CC-345A6A9972F0} = {CE9B79F2-1DA9-4B01-9B86-B19B3E60CD3A}
 		{8EB81144-5A51-4CAB-8449-AB432FCFEDA1} = {5413A5AB-EA58-45A9-870F-0967F08B8E11}
 		{A78FF883-6F6F-4861-B2ED-97688190C0F5} = {484F371C-6E94-45F0-A467-368FB6677740}
+		{D559C45A-0F53-48B3-8CDF-B8D22904F8DC} = {433B7FB9-0DFC-4D6C-A41D-1AA27E9F38C6}
+		{AD2621CB-4BFB-4982-BC85-6753F8A96DFD} = {D559C45A-0F53-48B3-8CDF-B8D22904F8DC}
+		{7BC917D5-B9CC-457D-9957-62E22963AA61} = {AD2621CB-4BFB-4982-BC85-6753F8A96DFD}
 	EndGlobalSection
 EndGlobal
