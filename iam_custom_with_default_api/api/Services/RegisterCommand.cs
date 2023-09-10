@@ -2,12 +2,14 @@
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using System.ComponentModel.DataAnnotations;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using WebApplication12.Areas.Identity.Data;
 
 namespace api.Services;
 
-    public record RegisterCommandRequest: IRequest<ResultOperation<int>>
-    {
+public record RegisterCommandRequest : IRequest<ResultOperation<RegisterCommandResponse>>
+{
     [Required(ErrorMessage = "User Name is required")]
     public string? Username { get; set; }
     [Required(ErrorMessage = "LastName is required")]
@@ -24,33 +26,60 @@ namespace api.Services;
 
 
 }
-    public class RegisterCommandHandler : IRequestHandler<RegisterCommandRequest , ResultOperation<int>>
-    {
+
+public class RegisterCommandResponse
+{
+    public string Token { get; set; }
+    public string RefreshToken { get; set; }
+    public DateTime RefreshTokenExpireTime { get; set; }
+}
+public class RegisterCommandHandler : IRequestHandler<RegisterCommandRequest, ResultOperation<RegisterCommandResponse>>
+{
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly RoleManager<IdentityRole> _roleManager;
+    private readonly ITokenService _tokenService;
+    private readonly JwtConfig _jwtConfig;
 
-    public RegisterCommandHandler(RoleManager<IdentityRole> roleManager, UserManager<ApplicationUser> userManager)
+    public RegisterCommandHandler(RoleManager<IdentityRole> roleManager, UserManager<ApplicationUser> userManager, ITokenService tokenService)
     {
         _roleManager = roleManager;
         _userManager = userManager;
+        _tokenService = tokenService;
+        _jwtConfig = new JwtConfig();
     }
 
-    public async Task<ResultOperation<int>> Handle(RegisterCommandRequest model, CancellationToken cancellationToken)
-        {
+    public async Task<ResultOperation<RegisterCommandResponse>> Handle(RegisterCommandRequest model, CancellationToken cancellationToken)
+    {
         var userExists = await _userManager.FindByNameAsync(model.Username);
         if (userExists != null)
-            return ResultOperation<int>.ToFailedResult( "User already exists!", StatusCodes.Status400BadRequest);
-
+            return ResultOperation<RegisterCommandResponse>.ToFailedResult("User already exists!");
+        var authClaims = new List<Claim>
+        {
+            new Claim(ClaimTypes.Name, model.Username),
+            new Claim(ClaimTypes.Role,UserRoles.User),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+        };
         var user = CreateUser(
             model.Email,
             Guid.NewGuid().ToString(),
             model.Username
         );
+        var token = _tokenService.GetToken(authClaims);
+        var RefreshToken = _tokenService.GenerateRefreshToken();
+        user.RefreshToken = RefreshToken;
+        user.RefreshTokenExpireTime = token.ValidTo.ToString();
         var result = await _userManager.CreateAsync(user, model.Password);
+        var RegisterResponse = new RegisterCommandResponse()
+        {
+            Token = new JwtSecurityTokenHandler().WriteToken(token),
+            RefreshToken = RefreshToken,
+            RefreshTokenExpireTime = token.ValidTo
+        };
         if (!result.Succeeded)
-            return ResultOperation<int>.ToFailedResult(message: "User creation failed! Please check user details and try again." ,StatusCodes.Status500InternalServerError);
+            
+            return ResultOperation<RegisterCommandResponse>.ToFailedResult(message: "User creation failed! Please check user details and try again.");
 
-         return ResultOperation<int>.ToSuccessResult( message:"User created successfully!", 200 );
+        return RegisterResponse.ToSuccessResult();
     }
     private ApplicationUser CreateUser(string? email, string securityStamp, string username)
     {
@@ -70,9 +99,9 @@ namespace api.Services;
         }
     }
 }
-    
-      
 
-        
-    
+
+
+
+
 

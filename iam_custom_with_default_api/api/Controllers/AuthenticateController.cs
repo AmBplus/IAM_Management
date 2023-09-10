@@ -43,7 +43,17 @@ public class AuthenticateController : ApiBaseController
     public async Task<IActionResult> Register([FromBody] RegisterCommandRequest model)
     {
       var result =  await    _mediator.Send(model);
-        return MapToApiResult(result);
+      if (result.IsSuccess)
+      {
+          return Ok(new
+          {
+              token = result.Data.Token,
+              expiration = result.Data.RefreshTokenExpireTime,
+
+          });
+        }
+
+      return Ok(result.Message);
     }
 
     //[HttpPost]

@@ -3,8 +3,11 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using api.Controllers;
+using api.Services;
 using WebApplication12.Areas.Identity.Data;
 using WebApplication12.Data;
+using Microsoft.Extensions.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,12 +17,13 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddTransient<ITokenService, TokenServices>();
 builder.Services.AddDbContext<ApplicationDbContext>(x => x.UseSqlServer("Data Source=.;Initial Catalog=CustomApiIdentity;Integrated Security=True;TrustServerCertificate=True"));
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
-
+builder.Services.AddMediatR(x=>x.RegisterServicesFromAssembly(typeof(AuthenticateController).Assembly));
 // Adding Authentication
 builder.Services.AddAuthentication(options =>
 {
