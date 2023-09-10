@@ -42,6 +42,7 @@ public class LoginUserCommandHandler : IRequestHandler<LoginUserCommandRequest, 
         if (user != null && await _userManager.CheckPasswordAsync(user, model.Password))
         {
             var userRoles = await _userManager.GetRolesAsync(user);
+            var userClaim = await _userManager.GetClaimsAsync(user);    
 
             var authClaims = new List<Claim>
                 {
@@ -54,7 +55,10 @@ public class LoginUserCommandHandler : IRequestHandler<LoginUserCommandRequest, 
             {
                 authClaims.Add(new Claim(ClaimTypes.Role, userRole));
             }
-
+            foreach (var item in userClaim)
+            {
+                authClaims.Add(item);
+            }
             var token = _tokenService.GetToken(authClaims);
             var refreshToken = _tokenService.GenerateRefreshToken();
             
@@ -66,11 +70,11 @@ public class LoginUserCommandHandler : IRequestHandler<LoginUserCommandRequest, 
             {
                 Token = new JwtSecurityTokenHandler().WriteToken(token),
                 RefreshTokenExpireTime = token.ValidTo,
-                RefreshToken = ""
+                RefreshToken = refreshToken
             };
             return loginResponse.ToSuccessResult();
         }
-   
+        throw new NotFiniteNumberException();
         //  return Unauthorized();
 
 
