@@ -31,12 +31,12 @@ public class AuthenticateController : ApiBaseController
         _mediator = mediator;
     }
 
-    [HttpPost]
-    [Route("login")]
-    public async Task<IActionResult> Login([FromBody] LoginUserCommandRequest model)
-    {
-     
-    }
+    // [HttpPost]
+    // [Route("login")]
+    // public async Task<IActionResult> Login([FromBody] LoginUserCommandRequest model)
+    // {
+    //  
+    // }
 
     [HttpPost]
     [Route("register")]
