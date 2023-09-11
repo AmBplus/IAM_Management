@@ -26,6 +26,7 @@ public class AuthenticateController : ApiBaseController
     }
 
     [HttpPost]
+   
     [Route("login")]
     public async Task<IActionResult> Login([FromBody] LoginUserCommandRequest model)
     {
