@@ -1,6 +1,7 @@
 ﻿using Base.Shared.ResultUtility;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
+using WebApplication12.Areas.Identity.Data;
 
 namespace api.Services;
     // Request model
@@ -13,42 +14,47 @@ namespace api.Services;
     }
 
 // Handler 
-public class RefreshTokenHandler : IRequestHandler<RefreshTokenRequest, AuthResponse>
+public class RefreshTokenHandler : IRequestHandler<RefreshTokenRequest, ResultOperation<AuthResponse>>
 {
-    private readonly UserManager<IdentityUser> userManager;
-    private readonly IJwtTokenService jwtService;
+    private readonly UserManager<ApplicationUser> userManager;
+    private readonly ITokenService jwtService;
 
-    public RefreshTokenHandler(UserManager<IdentityUser> userManager,
-                               IJwtTokenService jwtService)
+    public RefreshTokenHandler(UserManager<ApplicationUser> userManager,
+                               ITokenService tokenService)
     {
         this.userManager = userManager;
-        this.jwtService = jwtService;
+        this.jwtService = tokenService;
     }
 
     public async Task<AuthResponse> Handle(RefreshTokenRequest request,
                                            CancellationToken cancellationToken)
     {
         // Validate access token
-        var principal = jwtService.GetPrincipalFromExpiredToken(request.AccessToken);
+        var principal = jwtService.GetPrincipal(request.AccessToken);
 
         // Get user and validate refresh token
         var user = await userManager.FindByNameAsync(principal.Identity.Name);
 
         if (user.RefreshToken != request.RefreshToken ||
-            user.RefreshTokenExpired < DateTime.UtcNow)
+            user.RefreshTokenExpireTime < Base.Shared.Utility.Now)
         {
             return null;
         }
 
         // Generate new tokens
-        var tokens = jwtService.GenerateTokens(principal.Claims);
+        var tokens = jwtService.GetAuthTokenResult(principal.Claims);
 
         // Update user's refresh token
         user.RefreshToken = tokens.RefreshToken;
-        user.RefreshTokenExpired = DateTime.UtcNow.AddDays(7);
+        user.RefreshTokenExpireTime = tokens.RefreshTokenExpires;
 
         await userManager.UpdateAsync(user);
 
         return tokens;
+    }
+
+    Task<ResultOperation<AuthResponse>> IRequestHandler<RefreshTokenRequest, ResultOperation<AuthResponse>>.Handle(RefreshTokenRequest request, CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
     }
 }

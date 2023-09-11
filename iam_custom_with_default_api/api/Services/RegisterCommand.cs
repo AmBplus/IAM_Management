@@ -1,4 +1,5 @@
-﻿using Base.Shared.ResultUtility;
+﻿using api.Data;
+using Base.Shared.ResultUtility;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using System.ComponentModel.DataAnnotations;
@@ -27,9 +28,9 @@ namespace api.Services;
     public class RegisterCommandHandler : IRequestHandler<RegisterCommandRequest , ResultOperation<int>>
     {
     private readonly UserManager<ApplicationUser> _userManager;
-    private readonly RoleManager<IdentityRole> _roleManager;
+    private readonly RoleManager<ApplicationRole> _roleManager;
 
-    public RegisterCommandHandler(RoleManager<IdentityRole> roleManager, UserManager<ApplicationUser> userManager)
+    public RegisterCommandHandler(RoleManager<ApplicationRole> roleManager, UserManager<ApplicationUser> userManager)
     {
         _roleManager = roleManager;
         _userManager = userManager;

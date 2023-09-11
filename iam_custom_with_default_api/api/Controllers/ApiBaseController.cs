@@ -8,7 +8,8 @@ namespace api.Controllers
     [ApiController]
     public abstract class ApiBaseController : ControllerBase
     {
-        public  IActionResult MapToApiResult( ResultOperation<int> result)
+        [NonAction]
+        protected  IActionResult MapToApiResult( ResultOperation<int> result)
         {
             if (result.IsSuccess)
             {

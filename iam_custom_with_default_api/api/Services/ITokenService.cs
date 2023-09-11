@@ -1,4 +1,5 @@
 ﻿using api.Core;
+using Base.Shared;
 using Base.Shared.ResultUtility;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
@@ -8,84 +9,115 @@ using System.Security.Cryptography;
 using System.Text;
 using WebApplication12.Areas.Identity.Data;
 
-namespace api.Services
-{
-    public interface ITokenService
+namespace api.Services;
+
+    public class JwtService : IJwtService
     {
-        public JwtSecurityToken GetToken(List<Claim> authClaims);
-        public string GenerateRefreshToken();
-   
+  
+        private JwtSettings JwtSettings { get; set; }
+
+    public JwtService(JwtSettings jwtSettings)
+    {
+        JwtSettings = jwtSettings;
     }
-    public interface IRefreshTokenService
-    {
-        jWTTokenRefreshTokenResult GetNew(string refreshToken);
-    }
-    public class RefreshTokenService : IRefreshTokenService
-    {
-        public RefreshTokenService(UserManager<ApplicationUser> userManager, IUserAccessor userAccessor)
+
+
+     public (string,DateTime) GenerateToken(IEnumerable<Claim> claims)
         {
-            UserManager = userManager;
-            UserAccessor = userAccessor;
+        var secretKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(JwtSettings.Secret));
+        var signinCredentials = new SigningCredentials(secretKey, SecurityAlgorithms.HmacSha256);
+        var expire = Base.Shared.Utility.Now.AddMinutes(JwtSettings.TokenValidityInMinutes);
+        var tokeOptions = new JwtSecurityToken(
+            issuer: JwtSettings.ValidIssuer,
+            audience: JwtSettings.ValidAudience,
+            claims: claims,
+            expires: expire,
+            signingCredentials: signinCredentials
+        );
+
+        var tokenString = new JwtSecurityTokenHandler().WriteToken(tokeOptions);
+        
+        return (tokenString, expire);
         }
 
-        public UserManager<ApplicationUser> UserManager { get; }
-        public IUserAccessor UserAccessor { get; }
-
-        public jWTTokenRefreshTokenResult GetNew(string refreshToken)
+        public ClaimsPrincipal GetPrincipal(string token)
         {
-            var userName = UserAccessor?.User?.Identity?.Name;
-            var user = UserManager.Users.FirstOrDefault(x => x.UserName == userName);
-            if(user.RefreshTokenExpireTime> DateTime.Now && user.RefreshToken == refreshToken)
+            try
             {
-             return   GenerateNewRefreshTokenAndToken(user);
+                var tokenHandler = new JwtSecurityTokenHandler();
+                var jwtToken = tokenHandler.ReadToken(token) as JwtSecurityToken;
+
+                if (jwtToken == null) return null;
+
+                var symmetricKey = Convert.FromBase64String(JwtSettings.Secret);
+
+                var validationParameters = new TokenValidationParameters()
+                {
+                    RequireExpirationTime = true,
+                    ValidateIssuer = false,
+                    ValidateAudience = false,
+                    IssuerSigningKey = new SymmetricSecurityKey(symmetricKey)
+                };
+
+                var principal = tokenHandler.ValidateToken(token, validationParameters, out _);
+
+                return principal;
+
             }
-            throw new Exception();
+            catch (Exception)
+            {
+                return null;
+            }
         }
 
-        private jWTTokenRefreshTokenResult GenerateNewRefreshTokenAndToken(ApplicationUser user)
-        {
-            throw new NotImplementedException();
-        }
     }
-    public record jWTTokenRefreshTokenResult
+
+    public interface IJwtService
     {
-        string Token { get; set; }    
-        public string RefreshToken { get; set; }    
-        public string RefreshTokenExipireTime { get; set; }
-        public string TokenExpireTime { get; set; }
+    (string, DateTime) GenerateToken(IEnumerable<Claim> claims);
+        ClaimsPrincipal GetPrincipal(string token);
+
     }
-    public class TokenServices : ITokenService
+
+    public interface ITokenService {
+         AuthResponse GetAuthTokenResult(IEnumerable<Claim> claims);
+    ClaimsPrincipal GetPrincipal(string token);
+    }
+
+public class TokenService : ITokenService
+{
+    IJwtService jwtService;
+    JwtSettings JwtSettings;
+    private string GenerateRefreshToken()
     {
-   
-        private readonly IConfiguration _configuration;
+        var randomNumber = new byte[64];
+        using var rng = RandomNumberGenerator.Create();
+        rng.GetBytes(randomNumber);
+        return Convert.ToBase64String(randomNumber);
+    }
 
-        public TokenServices(IConfiguration configuration)
+    public TokenService(IJwtService jwtService, JwtSettings jwtSettings = null)
+    {
+        this.jwtService = jwtService;
+        JwtSettings = jwtSettings;
+    }
+
+    public AuthResponse GetAuthTokenResult(IEnumerable<Claim> claims)
+    {
+        var token  = jwtService.GenerateToken(claims);
+        var refreshToken = GenerateRefreshToken();
+        return new AuthResponse()
         {
-            _configuration = configuration;
-        }
-
-        public JwtSecurityToken GetToken(List<Claim> authClaims)
-        {
-            var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:Secret"]));
-            _ = int.TryParse(_configuration["JWT:TokenValidityInMinutes"], out int tokenValidityInMinutes);
-
-            var token = new JwtSecurityToken(
-                issuer: _configuration["JWT:ValidIssuer"],
-                audience: _configuration["JWT:ValidAudience"],
-                expires: DateTime.Now.AddMinutes(tokenValidityInMinutes),
-                claims: authClaims,
-                signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
-                );
-
-            return token;
-        }
-        public string GenerateRefreshToken()
-        {
-            var randomNumber = new byte[64];
-            using var rng = RandomNumberGenerator.Create();
-            rng.GetBytes(randomNumber);
-            return Convert.ToBase64String(randomNumber);
-        }
+            RefreshToken = refreshToken,
+            AccessToken = token.Item1,
+            AccessTokenExpires = token.Item2,
+            RefreshTokenExpires = Base.Shared.Utility.Now.AddDays(JwtSettings.RefreshTokenValidityInDays)
+        };
+    }
+    public ClaimsPrincipal GetPrincipal(string token)
+    {
+       return jwtService.GetPrincipal(token);
     }
 }
+
  

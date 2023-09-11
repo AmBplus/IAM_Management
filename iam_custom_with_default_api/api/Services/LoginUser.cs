@@ -1,4 +1,5 @@
-﻿using Base.Shared;
+﻿using api.Data;
+using Base.Shared;
 using Base.Shared.ResultUtility;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
@@ -23,14 +24,18 @@ namespace api.Services;
 public class LoginUserCommandHandler : IRequestHandler<LoginUserCommandRequest, ResultOperation<LoginResponse>>
 {
     private readonly UserManager<ApplicationUser> _userManager;
-    private readonly RoleManager<IdentityRole> _roleManager;
-    private readonly ITokenService _tokenService;
-    private readonly JwtConfig _jwtConfig;
+    private readonly RoleManager<ApplicationRole> _roleManager;
 
-    public LoginUserCommandHandler(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
+    private readonly ITokenService _tokenService;
+    
+
+    public LoginUserCommandHandler(UserManager<ApplicationUser> userManager
+        , RoleManager<ApplicationRole> roleManager
+        , ITokenService tokenService)
     {
         _userManager = userManager;
         _roleManager = roleManager;
+        _tokenService = tokenService;
    
     }
 
@@ -59,20 +64,20 @@ public class LoginUserCommandHandler : IRequestHandler<LoginUserCommandRequest, 
             {
                 authClaims.Add(item);
             }
-            var token = _tokenService.GetToken(authClaims);
-            var refreshToken = _tokenService.GenerateRefreshToken();
+            var tokenResult = _tokenService.GetAuthTokenResult(authClaims);
             
-            user.RefreshToken = refreshToken;
-            var refreshTokenExpireTime = DateTime.Now.AddMinutes(180).ToString();
+            
+            user.RefreshToken = tokenResult.RefreshToken;
+            var refreshTokenExpireTime = tokenResult.RefreshTokenExpires;
             user.RefreshTokenExpireTime = refreshTokenExpireTime;
             await _userManager.UpdateAsync(user);
             var loginResponse =
             new LoginResponse
             {
-                Token = new JwtSecurityTokenHandler().WriteToken(token),
-                TokenExpireTime = token.ValidTo.ToString(),
+                Token = tokenResult.AccessToken,
+                TokenExpireTime = tokenResult.AccessTokenExpires.ToString(),
                 RefreshTokenExpireTime = refreshTokenExpireTime.ToString() ,
-                RefreshToken = refreshToken
+                RefreshToken = tokenResult.RefreshToken
             };
             return loginResponse.ToSuccessResult();
         }
