@@ -8,7 +8,7 @@ using WebApplication12.Areas.Identity.Data;
 
 namespace api.Services;
 
-public record RegisterCommandRequest : IRequest<ResultOperation<RegisterCommandResponse>>
+public record RegisterCommandRequest : IRequest<ResultOperation<int>>
 {
     [Required(ErrorMessage = "User Name is required")]
     public string? Username { get; set; }
@@ -27,13 +27,8 @@ public record RegisterCommandRequest : IRequest<ResultOperation<RegisterCommandR
 
 }
 
-public class RegisterCommandResponse
-{
-    public string Token { get; set; }
-    public string RefreshToken { get; set; }
-    public DateTime RefreshTokenExpireTime { get; set; }
-}
-public class RegisterCommandHandler : IRequestHandler<RegisterCommandRequest, ResultOperation<RegisterCommandResponse>>
+
+public class RegisterCommandHandler : IRequestHandler<RegisterCommandRequest, ResultOperation<int>>
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly RoleManager<IdentityRole> _roleManager;
@@ -48,11 +43,11 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommandRequest, Re
         _jwtConfig = new JwtConfig();
     }
 
-    public async Task<ResultOperation<RegisterCommandResponse>> Handle(RegisterCommandRequest model, CancellationToken cancellationToken)
+    public async Task<ResultOperation<int>> Handle(RegisterCommandRequest model, CancellationToken cancellationToken)
     {
         var userExists = await _userManager.FindByNameAsync(model.Username);
         if (userExists != null)
-            return ResultOperation<RegisterCommandResponse>.ToFailedResult("User already exists!");
+            return ResultOperation<int>.ToFailedResult("User already exists!");
         var authClaims = new List<Claim>
         {
             new Claim(ClaimTypes.Name, model.Username),
@@ -69,17 +64,13 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommandRequest, Re
         user.RefreshToken = RefreshToken;
         user.RefreshTokenExpireTime = token.ValidTo.ToString();
         var result = await _userManager.CreateAsync(user, model.Password);
-        var RegisterResponse = new RegisterCommandResponse()
-        {
-            Token = new JwtSecurityTokenHandler().WriteToken(token),
-            RefreshToken = RefreshToken,
-            RefreshTokenExpireTime = token.ValidTo
-        };
+        var AddClaims = await _userManager.AddClaimsAsync(user, authClaims);
+        await _userManager.AddToRoleAsync(user, "Admin");
         if (!result.Succeeded)
             
-            return ResultOperation<RegisterCommandResponse>.ToFailedResult(message: "User creation failed! Please check user details and try again.");
+            return ResultOperation<int>.ToFailedResult(message: "User creation failed! Please check user details and try again.",data:StatusCodes.Status500InternalServerError);
 
-        return RegisterResponse.ToSuccessResult();
+        return ResultOperation<int>.ToSuccessResult(message:"The user successfully added", data: StatusCodes.Status200OK);
     }
     private ApplicationUser CreateUser(string? email, string securityStamp, string username)
     {

@@ -7,10 +7,10 @@ namespace api.Data.SeedData
         public static void Seed(this ModelBuilder builder)
         {
             
-            var Admin = new ApplicationRole(){Name = "Admin"};
-            var Supervisor = new ApplicationRole(){Name = "Supervisor" };
-            var Employee = new ApplicationRole(){Name = "Employee" };
-            var User = new ApplicationRole(){Name = "User" };
+            var Admin = new ApplicationRole(){Name = "Admin", NormalizedName = "Admin".ToUpper()};
+            var Supervisor = new ApplicationRole(){Name = "Supervisor" ,NormalizedName = "Supervisor".ToUpper() };
+            var Employee = new ApplicationRole(){Name = "Employee" , NormalizedName = "Employee".ToUpper() };
+            var User = new ApplicationRole(){Name = "User" , NormalizedName = "User".ToUpper() };
             //////////////////////////
             //
             builder.Entity<ApplicationRole>().HasData(Admin, Supervisor, Employee, User);
